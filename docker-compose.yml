@@ -1,0 +1,69 @@
+version: '3.9'
+
+# ============================================================
+#  JTrack JDash — Full Stack Docker Compose
+#  Services: PostgreSQL + Django/Gunicorn + Nginx
+# ============================================================
+
+services:
+
+  # ── PostgreSQL Database ─────────────────────────────────────
+  db:
+    image: postgres:15-alpine
+    container_name: jtrack-db
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      POSTGRES_DB: ${DB_NAME:-jtrackdb}
+      POSTGRES_USER: ${DB_USER:-jtrackuser}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-jtrackpassword}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-jtrackuser} -d ${DB_NAME:-jtrackdb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── JDash Django App (Gunicorn) ─────────────────────────────
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: jtrack-dashboard:${IMAGE_TAG:-latest}
+    container_name: jtrack-web
+    restart: unless-stopped
+    volumes:
+      - staticfiles:/app/staticfiles
+      - mediafiles:/app/mediafiles
+    env_file:
+      - .env
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - "8000"
+
+  # ── Nginx Reverse Proxy ─────────────────────────────────────
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: jtrack-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - staticfiles:/app/staticfiles:ro
+      - mediafiles:/app/mediafiles:ro
+    depends_on:
+      - web
+
+volumes:
+  postgres_data:
+    driver: local
+  staticfiles:
+    driver: local
+  mediafiles:
+    driver: local
