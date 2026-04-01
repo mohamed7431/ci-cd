@@ -9,8 +9,8 @@ Django>=4.2,<5.0
 django-environ==0.11.2          # .env file support for settings
 
 # ── Database — MariaDB / MySQL ───────────────────────────────
-# JTrack officially recommends MariaDB (MySQL-compatible)
-mysqlclient==2.2.4              # Django MySQL/MariaDB backend
+# PyMySQL: pure-Python MySQL driver, no system libs needed (drop-in for mysqlclient)
+PyMySQL==1.1.0
 
 # ── Web Server ───────────────────────────────────────────────
 gunicorn==21.2.0                # Production WSGI server
