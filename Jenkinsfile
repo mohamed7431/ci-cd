@@ -122,7 +122,7 @@ pipeline {
                     grep -q "FROM"            Dockerfile && echo "✅ FROM found"            || { echo "❌ FROM missing";            exit 1; }
                     grep -q "WORKDIR"         Dockerfile && echo "✅ WORKDIR found"         || echo "⚠️  WORKDIR not found (optional)"
                     grep -q "EXPOSE"          Dockerfile && echo "✅ EXPOSE found"          || echo "⚠️  EXPOSE not found (optional)"
-                    grep -q "CMD\|ENTRYPOINT" Dockerfile && echo "✅ CMD/ENTRYPOINT found"  || { echo "❌ CMD/ENTRYPOINT missing";   exit 1; }
+                    grep -qE "CMD|ENTRYPOINT"  Dockerfile && echo "✅ CMD/ENTRYPOINT found"  || { echo "❌ CMD/ENTRYPOINT missing";   exit 1; }
                     echo ""
                     echo "── Dockerfile preview ──"
                     cat Dockerfile
