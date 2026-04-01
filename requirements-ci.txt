@@ -1,0 +1,11 @@
+# ============================================================
+#  requirements-ci.txt — Minimal deps for Jenkins CI testing
+#  Use this if you ONLY want the pipeline lint/test to pass
+#  without installing the full JTrack stack.
+# ============================================================
+
+Django>=4.2,<5.0
+gunicorn==21.2.0
+mysqlclient==2.2.4
+djangorestframework==3.14.0
+flake8==7.0.0

@@ -1,0 +1,77 @@
+# ============================================================
+#  JTrack JDash — Python Requirements
+#  Based on: Django + MariaDB/MySQL + Bootstrap + Plotly-Dash
+#  Docs: https://jtrack.readthedocs.io/en/latest/JTrack_Dashboard.html
+# ============================================================
+
+# ── Core Django Framework ────────────────────────────────────
+Django>=4.2,<5.0
+django-environ==0.11.2          # .env file support for settings
+
+# ── Database — MariaDB / MySQL ───────────────────────────────
+# JTrack officially recommends MariaDB (MySQL-compatible)
+mysqlclient==2.2.4              # Django MySQL/MariaDB backend
+
+# ── Web Server ───────────────────────────────────────────────
+gunicorn==21.2.0                # Production WSGI server
+whitenoise==6.6.0               # Serve static files in production
+
+# ── REST API / Data Exchange ─────────────────────────────────
+djangorestframework==3.14.0     # DRF — for mobile app API endpoints
+django-cors-headers==4.3.1      # CORS support for mobile JTrack apps
+
+# ── Authentication & User Management ────────────────────────
+django-allauth==0.57.2          # Extended auth (login, registration)
+
+# ── Analytics — Plotly Dash Integration ──────────────────────
+# JDash uses optional Plotly-Dash analytics components
+dash==2.14.2
+dash-core-components==2.0.0
+dash-html-components==2.0.0
+dash-bootstrap-components==1.5.0
+plotly==5.18.0
+
+# ── QR Code (for participant enrollment) ─────────────────────
+qrcode==7.4.2                   # Generate study QR codes
+Pillow==10.1.0                  # Image support (QR codes + survey images)
+
+# ── Push Notifications (JTrack mobile app) ──────────────────
+firebase-admin==6.4.0           # Firebase Cloud Messaging
+
+# ── Data Handling & Export ───────────────────────────────────
+pandas==2.1.4                   # Data processing and export
+openpyxl==3.1.2                 # Excel export of study data
+numpy==1.26.3                   # Numerical operations
+
+# ── File & Storage Handling ──────────────────────────────────
+django-storages==1.14.2         # Cloud storage (S3, GCS) support
+boto3==1.34.11                  # AWS S3 (optional data storage)
+
+# ── Forms & UI ───────────────────────────────────────────────
+django-crispy-forms==2.1        # Better form rendering
+crispy-bootstrap5==2023.10      # Bootstrap 5 template pack
+
+# ── Security ─────────────────────────────────────────────────
+django-csp==3.7                 # Content Security Policy headers
+cryptography==41.0.7            # Encryption utilities
+
+# ── Background Tasks / Scheduling ───────────────────────────
+celery==5.3.6                   # Async task queue (notifications, exports)
+redis==5.0.1                    # Celery broker + cache backend
+django-celery-beat==2.5.0       # Periodic task scheduling
+
+# ── Email ────────────────────────────────────────────────────
+django-ses==3.5.0               # AWS SES email backend (optional)
+
+# ── Utilities ────────────────────────────────────────────────
+requests==2.31.0                # HTTP requests to JTrack backend
+python-dateutil==2.8.2          # Date parsing utilities
+pytz==2023.3                    # Timezone support
+six==1.16.0                     # Python 2/3 compatibility
+
+# ── Development / Testing only ───────────────────────────────
+# Install with: pip install -r requirements-dev.txt
+# flake8==7.0.0
+# pytest==7.4.4
+# pytest-django==4.7.0
+# coverage==7.4.0
