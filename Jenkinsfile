@@ -48,35 +48,40 @@ pipeline {
         }
 
         // ── Lint ────────────────────────────────
-        stage('Lint') {
-            steps {
-                echo '🔎 Running flake8...'
-                sh '''
-                    pip install flake8 --quiet
-                    flake8 . --count \
-                             --max-line-length=120 \
-                             --exclude=migrations,venv,staticfiles \
-                             --statistics || true
-                '''
-            }
-        }
+       stage('Lint') {
+    steps {
+        echo '🔎 Running flake8...'
+        sh '''
+            python3 -m venv venv
+            . venv/bin/activate
+
+            pip install flake8 --quiet
+
+            flake8 . --count \
+                     --max-line-length=120 \
+                     --exclude=migrations,venv,staticfiles \
+                     --statistics || true
+        '''
+    }
+}
 
         // ── Run Tests ───────────────────────────
-        stage('Run Tests') {
-            steps {
-                echo '🧪 Running Django tests...'
-                sh '''
-                    python3 -m venv venv
-                    . venv/bin/activate
-                    pip install -r requirements.txt --quiet
+     stage('Run Tests') {
+    steps {
+        echo '🧪 Running Django tests...'
+        sh '''
+            python3 -m venv venv
+            . venv/bin/activate
 
-                    python manage.py test \
-                        --settings=jdash.settings.test \
-                        --verbosity=2 \
-                        --keepdb
-                '''
-            }
-        }
+            pip install -r requirements.txt --quiet
+
+            python manage.py test \
+                --settings=jdash.settings.test \
+                --verbosity=2 \
+                --keepdb
+        '''
+    }
+}
 
         // ── Build Docker Image ──────────────────
         stage('Build Docker Image') {
