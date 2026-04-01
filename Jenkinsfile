@@ -66,14 +66,16 @@ pipeline {
 }
 
         // ── Run Tests ───────────────────────────
-     stage('Run Tests') {
+    stage('Run Tests') {
     steps {
         echo '🧪 Running Django tests...'
         sh '''
             python3 -m venv venv
             . venv/bin/activate
 
-            pip install -r requirements.txt --quiet
+            pip install -r JTrack_Dashboard/requirements.txt --quiet
+
+            cd JTrack_Dashboard
 
             python manage.py test \
                 --settings=jdash.settings.test \
