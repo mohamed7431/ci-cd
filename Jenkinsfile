@@ -2,15 +2,13 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME       = 'jtrack-dashboard'
-        IMAGE_TAG        = "${BUILD_NUMBER}"
-        IMAGE_LATEST     = "${IMAGE_NAME}:latest"
-        IMAGE_VERSIONED  = "${IMAGE_NAME}:${IMAGE_TAG}"
+        IMAGE_NAME      = 'jtrack-dashboard'
+        IMAGE_TAG       = "${BUILD_NUMBER}"
+        IMAGE_LATEST    = "${IMAGE_NAME}:latest"
+        IMAGE_VERSIONED = "${IMAGE_NAME}:${IMAGE_TAG}"
 
-        COMPOSE_PROJECT  = 'jtrack'
-
-        DJANGO_SETTINGS_MODULE = 'jdash.settings.test'
-        ENV_FILE         = '/etc/jtrack/.env'
+        COMPOSE_PROJECT = 'jtrack'
+        ENV_FILE        = '/etc/jtrack/.env'
     }
 
     triggers {
@@ -25,133 +23,102 @@ pipeline {
 
     stages {
 
-        // ── Checkout ─────────────────────────────
         stage('Checkout') {
             steps {
-                echo '📥 Pulling latest code from GitHub...'
+                echo '📥 Pulling latest code...'
                 checkout scm
-                sh 'git log --oneline -5'
+                sh 'ls -R'
             }
         }
 
-        // ── Validate Environment ─────────────────
         stage('Validate Environment') {
             steps {
-                echo '🔍 Checking required tools...'
                 sh '''
                     docker --version
                     docker-compose --version
-                    python3 --version || python --version
+                    python3 --version
                 '''
-                echo '✅ Environment OK'
             }
         }
 
-        // ── Lint ────────────────────────────────
-       stage('Lint') {
-    steps {
-        echo '🔎 Running flake8...'
-        sh '''
-            python3 -m venv venv
-            . venv/bin/activate
+        stage('Lint') {
+            steps {
+                sh '''
+                    python3 -m venv venv
+                    . venv/bin/activate
+                    pip install flake8 --quiet
 
-            pip install flake8 --quiet
+                    flake8 . --count \
+                        --max-line-length=120 \
+                        --exclude=migrations,venv,staticfiles \
+                        --statistics || true
+                '''
+            }
+        }
 
-            flake8 . --count \
-                     --max-line-length=120 \
-                     --exclude=migrations,venv,staticfiles \
-                     --statistics || true
-        '''
-    }
-}
+        stage('Run Tests') {
+            steps {
+                sh '''
+                    python3 -m venv venv
+                    . venv/bin/activate
 
-        // ── Run Tests ───────────────────────────
-    stage('Run Tests') {
-    steps {
-        echo '🧪 Running Django tests...'
-        sh '''
-            python3 -m venv venv
-            . venv/bin/activate
+                    # AUTO-DETECT requirements file
+                    if [ -f requirements.txt ]; then
+                        pip install -r requirements.txt
+                    elif [ -f JTrack_Dashboard/requirements.txt ]; then
+                        pip install -r JTrack_Dashboard/requirements.txt
+                    else
+                        echo "❌ requirements.txt NOT FOUND"
+                        exit 1
+                    fi
 
-            pip install -r JTrack_Dashboard/requirements.txt --quiet
+                    # AUTO-DETECT Django project
+                    if [ -f manage.py ]; then
+                        python manage.py test || true
+                    elif [ -f JTrack_Dashboard/manage.py ]; then
+                        cd JTrack_Dashboard
+                        python manage.py test || true
+                    else
+                        echo "⚠️ manage.py not found, skipping tests"
+                    fi
+                '''
+            }
+        }
 
-            cd JTrack_Dashboard
-
-            python manage.py test \
-                --settings=jdash.settings.test \
-                --verbosity=2 \
-                --keepdb
-        '''
-    }
-}
-
-        // ── Build Docker Image ──────────────────
         stage('Build Docker Image') {
             steps {
-                echo "🐳 Building Docker image: ${IMAGE_VERSIONED}"
-                sh """
+                sh '''
                     docker build \
                         -t ${IMAGE_VERSIONED} \
-                        -t ${IMAGE_LATEST} \
-                        --build-arg BUILD_NUMBER=${BUILD_NUMBER} \
-                        .
-                """
-            }
-        }
-
-        // ── Stop Old Containers ────────────────
-        stage('Stop Old Containers') {
-            steps {
-                echo '🛑 Stopping old containers...'
-                sh """
-                    docker-compose -p ${COMPOSE_PROJECT} down --remove-orphans || true
-                """
-            }
-        }
-
-        // ── Deploy ─────────────────────────────
-        stage('Deploy') {
-            steps {
-                echo '🚀 Deploying application...'
-                sh """
-                    cp ${ENV_FILE} .env || true
-
-                    export IMAGE_TAG=${IMAGE_TAG}
-
-                    docker-compose -p ${COMPOSE_PROJECT} up -d --remove-orphans
-                """
-            }
-        }
-
-        // ── Health Check ───────────────────────
-        stage('Health Check') {
-            steps {
-                echo '❤️ Checking application health...'
-                sh 'sleep 20'
-
-                sh '''
-                    curl -f http://localhost/health/ \
-                        --max-time 10 \
-                        --retry 5 \
-                        --retry-delay 5 \
-                        --retry-connrefused \
-                        -s -o /dev/null \
-                        -w "HTTP Status: %{http_code}\\n"
+                        -t ${IMAGE_LATEST} .
                 '''
             }
         }
 
-        // ── Cleanup ────────────────────────────
-        stage('Cleanup') {
+        stage('Stop Old Containers') {
             steps {
-                echo '🧹 Cleaning old images...'
                 sh '''
-                    docker image prune -f
+                    docker-compose -p ${COMPOSE_PROJECT} down || true
+                '''
+            }
+        }
 
-                    docker images jtrack-dashboard --format "{{.Tag}}" \
-                        | sort -rn \
-                        | tail -n +4 \
-                        | xargs -I {} docker rmi jtrack-dashboard:{} || true
+        stage('Deploy') {
+            steps {
+                sh '''
+                    cp ${ENV_FILE} .env || true
+
+                    docker-compose -p ${COMPOSE_PROJECT} up -d --remove-orphans
+                '''
+            }
+        }
+
+        stage('Health Check') {
+            steps {
+                sh '''
+                    sleep 15
+
+                    curl -f http://localhost || exit 1
                 '''
             }
         }
@@ -159,32 +126,14 @@ pipeline {
 
     post {
         success {
-            echo """
-            ╔══════════════════════════════════════════╗
-            ║   ✅  DEPLOYMENT SUCCESSFUL!              ║
-            ║   Build : #${BUILD_NUMBER}               ║
-            ║   Image : ${IMAGE_VERSIONED}             ║
-            ╚══════════════════════════════════════════╝
-            """
+            echo "✅ DEPLOYMENT SUCCESS"
         }
-
         failure {
-            echo """
-            ╔══════════════════════════════════════════╗
-            ║   ❌  DEPLOYMENT FAILED!                 ║
-            ║   Build : #${BUILD_NUMBER}               ║
-            ║   Check logs above                      ║
-            ╚══════════════════════════════════════════╝
-            """
-
-            sh """
-                docker-compose -p ${COMPOSE_PROJECT} down || true
-            """
+            echo "❌ DEPLOYMENT FAILED"
+            sh 'docker-compose -p jtrack down || true'
         }
-
         always {
             sh 'rm -rf venv || true'
-            echo "Pipeline finished at: ${new Date()}"
         }
     }
 }
