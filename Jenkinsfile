@@ -1,18 +1,19 @@
 // ============================================================
-//  Jenkinsfile — JTrack JDash CI/CD Pipeline (Fixed)
+//  Jenkinsfile — JTrack JDash CI/CD Pipeline
 //  Repo: https://github.com/mohamed7431/ci-cd
+//  Updated: includes requirements-ci.txt install + flake8 lint
 // ============================================================
 
 pipeline {
     agent any
 
     environment {
-        IMAGE_NAME     = 'jtrack-dashboard'
-        IMAGE_TAG      = "${BUILD_NUMBER}"
-        IMAGE_LATEST   = "${IMAGE_NAME}:latest"
+        IMAGE_NAME      = 'jtrack-dashboard'
+        IMAGE_TAG       = "${BUILD_NUMBER}"
+        IMAGE_LATEST    = "${IMAGE_NAME}:latest"
         IMAGE_VERSIONED = "${IMAGE_NAME}:${IMAGE_TAG}"
         COMPOSE_PROJECT = 'jtrack'
-        HOST_PORT      = '80'
+        HOST_PORT       = '80'
     }
 
     triggers {
@@ -49,47 +50,79 @@ pipeline {
                     docker --version
                     docker compose version || docker-compose --version
                     python3 --version
+                    pip3 --version
                 '''
                 echo '✅ Environment OK'
             }
         }
 
         // ── Stage 3: Validate Config Files ───────────────────
-        // Checks that all required CI/CD files are present in the repo.
-        // Skips Python/Django checks since this repo does not have an app yet.
         stage('Validate Config Files') {
             steps {
-                echo '📋 Checking required CI/CD files...'
+                echo '📋 Checking all required CI/CD files are present...'
                 sh '''
-                    echo "Checking Dockerfile..."
-                    [ -f Dockerfile ]   && echo "✅ Dockerfile found"   || { echo "❌ Dockerfile missing"; exit 1; }
-
-                    echo "Checking docker-compose.yml..."
-                    [ -f docker-compose.yml ] && echo "✅ docker-compose.yml found" || { echo "❌ docker-compose.yml missing"; exit 1; }
-
-                    echo "Checking entrypoint.sh..."
-                    [ -f entrypoint.sh ] && echo "✅ entrypoint.sh found" || { echo "❌ entrypoint.sh missing"; exit 1; }
-
-                    echo "Checking nginx.conf..."
-                    [ -f nginx.conf ] && echo "✅ nginx.conf found" || { echo "❌ nginx.conf missing"; exit 1; }
-
+                    [ -f Dockerfile ]           && echo "✅ Dockerfile found"           || { echo "❌ Dockerfile missing";           exit 1; }
+                    [ -f docker-compose.yml ]   && echo "✅ docker-compose.yml found"   || { echo "❌ docker-compose.yml missing";   exit 1; }
+                    [ -f entrypoint.sh ]        && echo "✅ entrypoint.sh found"        || { echo "❌ entrypoint.sh missing";        exit 1; }
+                    [ -f nginx.conf ]           && echo "✅ nginx.conf found"           || { echo "❌ nginx.conf missing";           exit 1; }
+                    [ -f requirements-ci.txt ]  && echo "✅ requirements-ci.txt found"  || { echo "❌ requirements-ci.txt missing";  exit 1; }
                     echo ""
                     echo "✅ All required files present!"
                 '''
             }
         }
 
-        // ── Stage 4: Validate Dockerfile Syntax ──────────────
+        // ── Stage 4: Install Dependencies (requirements-ci.txt)
+        stage('Install Dependencies') {
+            steps {
+                echo '📦 Installing Python dependencies from requirements-ci.txt...'
+                sh '''
+                    python3 -m venv venv
+                    . venv/bin/activate
+
+                    pip install --upgrade pip --quiet
+
+                    echo "── Installing from requirements-ci.txt ──"
+                    pip install -r requirements-ci.txt --quiet
+
+                    echo ""
+                    echo "── Installed packages ──"
+                    pip list
+
+                    echo ""
+                    echo "✅ All dependencies installed successfully!"
+                '''
+            }
+        }
+
+        // ── Stage 5: Lint (flake8 via requirements-ci.txt) ───
+        stage('Lint') {
+            steps {
+                echo '🔎 Running flake8 Python linter...'
+                sh '''
+                    . venv/bin/activate
+
+                    flake8 . \
+                        --count \
+                        --max-line-length=120 \
+                        --exclude=venv,migrations,staticfiles,__pycache__ \
+                        --statistics \
+                        --format=default
+
+                    echo "✅ Lint passed!"
+                '''
+            }
+        }
+
+        // ── Stage 6: Lint Dockerfile ──────────────────────────
         stage('Lint Dockerfile') {
             steps {
-                echo '🔎 Checking Dockerfile syntax...'
+                echo '🔎 Checking Dockerfile instructions...'
                 sh '''
-                    # Verify Dockerfile has required instructions
-                    grep -q "FROM"       Dockerfile && echo "✅ FROM found"       || { echo "❌ FROM missing in Dockerfile"; exit 1; }
-                    grep -q "WORKDIR"    Dockerfile && echo "✅ WORKDIR found"    || echo "⚠️  WORKDIR not found (optional)"
-                    grep -q "EXPOSE"     Dockerfile && echo "✅ EXPOSE found"     || echo "⚠️  EXPOSE not found (optional)"
-                    grep -q "CMD\|ENTRYPOINT" Dockerfile && echo "✅ CMD/ENTRYPOINT found" || { echo "❌ CMD or ENTRYPOINT missing"; exit 1; }
-
+                    grep -q "FROM"            Dockerfile && echo "✅ FROM found"            || { echo "❌ FROM missing";            exit 1; }
+                    grep -q "WORKDIR"         Dockerfile && echo "✅ WORKDIR found"         || echo "⚠️  WORKDIR not found (optional)"
+                    grep -q "EXPOSE"          Dockerfile && echo "✅ EXPOSE found"          || echo "⚠️  EXPOSE not found (optional)"
+                    grep -q "CMD\|ENTRYPOINT" Dockerfile && echo "✅ CMD/ENTRYPOINT found"  || { echo "❌ CMD/ENTRYPOINT missing";   exit 1; }
                     echo ""
                     echo "── Dockerfile preview ──"
                     cat Dockerfile
@@ -97,20 +130,19 @@ pipeline {
             }
         }
 
-        // ── Stage 5: Validate docker-compose Syntax ──────────
+        // ── Stage 7: Validate docker-compose Syntax ──────────
         stage('Validate Compose') {
             steps {
-                echo '🐳 Validating docker-compose.yml...'
+                echo '🐳 Validating docker-compose.yml syntax...'
                 sh '''
                     docker compose config --quiet \
                         && echo "✅ docker-compose.yml is valid" \
-                        || docker-compose config --quiet \
-                        && echo "✅ docker-compose.yml is valid"
+                        || { docker-compose config --quiet && echo "✅ docker-compose.yml is valid"; }
                 '''
             }
         }
 
-        // ── Stage 6: Build Docker Image ───────────────────────
+        // ── Stage 8: Build Docker Image ───────────────────────
         stage('Build Docker Image') {
             steps {
                 echo "🐳 Building Docker image: ${IMAGE_VERSIONED}..."
@@ -122,11 +154,11 @@ pipeline {
                         .
                 """
                 sh "docker images | grep ${IMAGE_NAME}"
-                echo "✅ Image built successfully: ${IMAGE_VERSIONED}"
+                echo "✅ Image built: ${IMAGE_VERSIONED}"
             }
         }
 
-        // ── Stage 7: Stop Old Containers ─────────────────────
+        // ── Stage 9: Stop Old Containers ─────────────────────
         stage('Stop Old Containers') {
             steps {
                 echo '🛑 Stopping any existing JTrack containers...'
@@ -139,14 +171,13 @@ pipeline {
             }
         }
 
-        // ── Stage 8: Deploy ───────────────────────────────────
+        // ── Stage 10: Deploy ──────────────────────────────────
         stage('Deploy') {
             steps {
-                echo '🚀 Deploying JTrack stack...'
+                echo '🚀 Deploying JTrack stack (DB + App + Nginx)...'
                 sh """
-                    # Create a minimal .env if one does not exist yet
                     if [ ! -f .env ]; then
-                        echo "⚠️  No .env found — creating minimal one for testing"
+                        echo "⚠️  No .env found — creating a minimal one for testing"
                         cat > .env <<'EOF'
 DB_NAME=jtrackdb
 DB_USER=jtrackuser
@@ -169,10 +200,10 @@ EOF
             }
         }
 
-        // ── Stage 9: Health Check ─────────────────────────────
+        // ── Stage 11: Health Check ────────────────────────────
         stage('Health Check') {
             steps {
-                echo '❤️  Waiting for containers to be ready...'
+                echo '❤️  Waiting for containers to start...'
                 sh 'sleep 20'
                 sh '''
                     echo "── Running containers ──"
@@ -187,26 +218,26 @@ EOF
                         --retry-connrefused \
                         -s -o /dev/null \
                         -w "HTTP Status: %{http_code}\\n" \
-                    && echo "✅ JDash is live!" \
-                    || echo "⚠️  Health check failed — check logs below"
+                    && echo "✅ JDash is live at http://localhost" \
+                    || echo "⚠️  Health check failed — see logs below"
 
                     echo ""
-                    echo "── Web container logs ──"
+                    echo "── Web container logs (last 20 lines) ──"
                     docker logs jtrack-web --tail=20 2>/dev/null || true
                 '''
             }
         }
 
-        // ── Stage 10: Cleanup ─────────────────────────────────
+        // ── Stage 12: Cleanup ─────────────────────────────────
         stage('Cleanup') {
             steps {
-                echo '🧹 Removing dangling images...'
+                echo '🧹 Removing dangling Docker images...'
                 sh 'docker image prune -f'
             }
         }
     }
 
-    // ── Post actions ──────────────────────────────────────────
+    // ── Post-pipeline actions ─────────────────────────────────
     post {
         success {
             echo """
