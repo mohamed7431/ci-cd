@@ -62,19 +62,16 @@ DB_HOST = os.environ.get('DB_HOST', '')
 if DB_HOST:
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.mysql',
+            'ENGINE': 'django.db.backends.postgresql',
             'NAME': os.environ.get('DB_NAME', 'jtrackdb'),
             'USER': os.environ.get('DB_USER', 'jtrackuser'),
-            'PASSWORD': os.environ.get('DB_PASSWORD', ''),
+            'PASSWORD': os.environ.get('DB_PASSWORD', 'jtrackpassword'),
             'HOST': DB_HOST,
-            'PORT': os.environ.get('DB_PORT', '3306'),
-            'OPTIONS': {
-                'charset': 'utf8mb4',
-            },
+            'PORT': os.environ.get('DB_PORT', '5432'),
         }
     }
 else:
-    # Fallback to SQLite for local dev / CI when no DB_HOST set
+    # SQLite fallback (for local / CI)
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
