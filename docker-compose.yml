@@ -9,20 +9,23 @@ services:
 
   # ── PostgreSQL Database ─────────────────────────────────────
   db:
-    image: postgres:15-alpine
+    image: mariadb:11
     container_name: jtrack-db
     restart: unless-stopped
     volumes:
-      - postgres_data:/var/lib/postgresql/data/
+      - postgres_data:/var/lib/mysql
     environment:
-      POSTGRES_DB: ${DB_NAME:-jtrackdb}
-      POSTGRES_USER: ${DB_USER:-jtrackuser}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-jtrackpassword}
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-jtrackuser} -d ${DB_NAME:-jtrackdb}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    MYSQL_DATABASE: ${DB_NAME:-jtrackdb}
+    MYSQL_USER: ${DB_USER:-jtrackuser}
+    MYSQL_PASSWORD: ${DB_PASSWORD:-jtrackpassword}
+    MYSQL_ROOT_PASSWORD: rootpassword
+  ports:
+    - "3306:3306"
+  healthcheck:
+    test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+    interval: 10s
+    timeout: 5s
+    retries: 5
 
   # ── JDash Django App (Gunicorn) ─────────────────────────────
   web:
