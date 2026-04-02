@@ -63,7 +63,7 @@ RUN mkdir -p /app/staticfiles /app/mediafiles \
 # Django environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    DJANGO_SETTINGS_MODULE=jdash.settings.production \
+    DJANGO_SETTINGS_MODULE=jdash.settings \
     PORT=8000
 
 # Switch to non-root user
