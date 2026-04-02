@@ -48,7 +48,9 @@ COPY --from=builder /usr/src/app/wheels /wheels
 RUN pip install --no-cache /wheels/*
 
 # Copy JTrack dashboard source code
-COPY . /app/
+COPY . .
+
+Run ls -la /app 
 
 # Copy entrypoint script and make it executable
 COPY entrypoint.sh /app/entrypoint.sh
