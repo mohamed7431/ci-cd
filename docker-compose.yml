@@ -1,13 +1,7 @@
 version: '3.9'
 
-# ============================================================
-#  JTrack JDash — Full Stack Docker Compose
-#  Services: PostgreSQL + Django/Gunicorn + Nginx
-# ============================================================
-
 services:
 
-  # ── PostgreSQL Database ─────────────────────────────────────
   db:
     image: mariadb:11
     container_name: jtrack-db
@@ -15,19 +9,18 @@ services:
     volumes:
       - postgres_data:/var/lib/mysql
     environment:
-    MYSQL_DATABASE: ${DB_NAME:-jtrackdb}
-    MYSQL_USER: ${DB_USER:-jtrackuser}
-    MYSQL_PASSWORD: ${DB_PASSWORD:-jtrackpassword}
-    MYSQL_ROOT_PASSWORD: rootpassword
-  ports:
-    - "3306:3306"
-  healthcheck:
-    test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-    interval: 10s
-    timeout: 5s
-    retries: 5
+      MYSQL_DATABASE: ${DB_NAME:-jtrackdb}
+      MYSQL_USER: ${DB_USER:-jtrackuser}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-jtrackpassword}
+      MYSQL_ROOT_PASSWORD: rootpassword
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # ── JDash Django App (Gunicorn) ─────────────────────────────
   web:
     build:
       context: .
@@ -42,32 +35,28 @@ services:
       - .env
     environment:
       DB_HOST: db
-      DB_PORT: 5432
+      DB_PORT: 3306
     depends_on:
       db:
         condition: service_healthy
     expose:
       - "8000"
 
-  # ── Nginx Reverse Proxy ─────────────────────────────────────
   nginx:
-   build:
-    context: .
-    dockerfile: nginx/Dockerfile
-  container_name: jtrack-nginx
-  restart: unless-stopped
-  ports:
-    - "80:80"
-  volumes:
-    - staticfiles:/app/staticfiles:ro
-    - mediafiles:/app/mediafiles:ro
-  depends_on:
-    - web
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+    container_name: jtrack-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - staticfiles:/app/staticfiles:ro
+      - mediafiles:/app/mediafiles:ro
+    depends_on:
+      - web
 
 volumes:
   postgres_data:
-    driver: local
   staticfiles:
-    driver: local
   mediafiles:
-    driver: local
