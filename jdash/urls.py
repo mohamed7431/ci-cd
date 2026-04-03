@@ -8,11 +8,12 @@ def health(request):
 urlpatterns = [
     path('admin/', admin.site.urls),
 
-    # Health check (for Docker / Load Balancer)
+    # Health check (used by Docker / LB)
     path('health/', health, name='health'),
 
     # API routes
     path('api/', include('core.urls')),
 
-    # Optional: root URL → you can point to a homepage view later
+    # UI / frontend
+    path('', include('core.urls')),
 ]
