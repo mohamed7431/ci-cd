@@ -10,7 +10,7 @@ DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = os.environ.get(
     'ALLOWED_HOSTS',
-    'localhost,127.0.0.1'
+    'localhost,127.0.0.1,0.0.0.0,10.0.2.114,my-alb-1702515171.us-east-1.elb.amazonaws.com'
 ).split(',')
 
 # ── Apps ──────────────────────────────────────────────────────
