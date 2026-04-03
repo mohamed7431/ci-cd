@@ -1,13 +1,11 @@
-from django.contrib import admin
-from django.urls import path, include
-from django.http import JsonResponse
-
-def health(request):
-    return JsonResponse({'status': 'OK', 'service': 'JTrack JDash'})
+from django.urls import path
+from . import views
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('health/', health, name='health'),
-    path('api/', include('core.urls')),
-    path('', include('core.urls')),
+    # Example endpoints — update based on your project
+
+    path('', views.home, name='home'),  # optional root
+    path('status/', views.status, name='status'),
+
+    # Add your actual APIs here
 ]
