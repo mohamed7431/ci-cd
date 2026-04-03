@@ -68,9 +68,6 @@ if DB_HOST:
         'PASSWORD': os.environ.get('DB_PASSWORD', 'jtrackpassword'),
         'HOST': os.environ.get('DB_HOST', 'db'),
         'PORT': os.environ.get('DB_PORT', '3306'),
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-        },
     }
 }
 else:
