@@ -2,10 +2,10 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    # Example endpoints — update based on your project
+    # UI
+    path('', views.home, name='home'),
 
-    path('', views.home, name='home'),  # optional root
-    path('status/', views.status, name='status'),
-
-    # Add your actual APIs here
+    # API
+    path('status/', views.api_status, name='api_status'),
+    path('studies/', views.api_studies, name='api_studies'),
 ]
