@@ -8,10 +8,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = os.environ.get(
-    'ALLOWED_HOSTS',
-    'localhost,127.0.0.1,0.0.0.0,10.0.2.114,my-alb-1702515171.us-east-1.elb.amazonaws.com'
-).split(',')
+ALLOWED_HOSTS = ['*']
 
 # ── Apps ──────────────────────────────────────────────────────
 INSTALLED_APPS = [
