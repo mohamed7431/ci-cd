@@ -28,9 +28,11 @@ services:
       - mediafiles:/app/mediafiles
     env_file:
       - .env
-    environment:
-      DB_HOST: db
-      DB_PORT: 3306
+   environment:
+  DB_HOST: db
+  DB_PORT: 3306
+  ALLOWED_HOSTS: my-alb-1702515171.us-east-1.elb.amazonaws.com
+  DEBUG: "False"
     depends_on:
       - db
     expose:
